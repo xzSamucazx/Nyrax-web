@@ -35,4 +35,15 @@ footer{border-top-color:#c7a45b35}
 
 .auth-divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:10px;letter-spacing:2px;margin:1px 0}.auth-divider:before,.auth-divider:after{content:"";height:1px;background:var(--line);flex:1}.discord-button{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#17151d;border-color:#45404f;color:var(--text);transition:border-color .18s ease,background .18s ease}.discord-button:hover{background:#211d2a;border-color:#8e79b7}.discord-mark{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:#5865f2;color:#fff;font-size:13px;font-weight:800;letter-spacing:-1px}.discord-button:disabled{opacity:.65}
 
+/* Formulários separados de login e cadastro */
+.auth-view{display:flex;flex-direction:column;gap:13px}
+.auth-view.hidden{display:none!important}
+.auth-form{display:flex;flex-direction:column;gap:13px}
+.auth-form .form-message{min-height:0}
 .form-message[data-kind="success"]{color:#b7e3bc}
+.dialog-card>.muted,.auth-view>.muted{margin:0}
+.auth-form button[type="submit"]{width:100%;min-height:44px}
+.auth-view>.text-button{align-self:flex-start}
+.dialog-card>.auth-divider{margin:2px 0}
+.dialog-card>.discord-button{min-height:44px}
+.dialog-card>.form-message{margin-top:-6px}
