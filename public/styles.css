@@ -32,3 +32,5 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .dialog-card small{color:var(--muted);line-height:1.6}
 footer{border-top-color:#c7a45b35}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+.auth-divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:10px;letter-spacing:2px;margin:1px 0}.auth-divider:before,.auth-divider:after{content:"";height:1px;background:var(--line);flex:1}.discord-button{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#17151d;border-color:#45404f;color:var(--text);transition:border-color .18s ease,background .18s ease}.discord-button:hover{background:#211d2a;border-color:#8e79b7}.discord-mark{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:#5865f2;color:#fff;font-size:13px;font-weight:800;letter-spacing:-1px}.discord-button:disabled{opacity:.65}
