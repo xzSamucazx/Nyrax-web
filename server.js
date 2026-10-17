@@ -29,7 +29,7 @@ app.use(helmet({
       fontSrc: ["'self'", 'data:'],
       scriptSrc: ["'self'", 'https://esm.sh'],
       imgSrc: ["'self'", 'data:'],
-      connectSrc: ["'self'", 'https://esm.sh', ...(supabaseOrigin !== "'self'" ? [supabaseOrigin] : [])]
+      connectSrc: ["'self'", 'https://esm.sh', 'https://ryclrogodmbviomplsbl.supabase.co', ...(supabaseOrigin !== "'self'" && supabaseOrigin !== 'https://ryclrogodmbviomplsbl.supabase.co' ? [supabaseOrigin] : [])]
     }
   },
   crossOriginEmbedderPolicy: false
