@@ -46,7 +46,21 @@ app.get('/api/config', configLimiter, (req, res) => {
   res.json({ supabaseUrl: validUrl ? supabaseUrl : '', supabaseAnonKey: validUrl ? supabaseAnonKey : '', authConfigured: Boolean(validUrl && supabaseAnonKey) });
 });
 
-app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'], dotfiles: 'deny', index: 'index.html', maxAge: isProduction ? '1h' : 0 }));
+app.use(express.static(path.join(__dirname, 'public'), {
+  extensions: ['html'],
+  dotfiles: 'deny',
+  index: 'index.html',
+  maxAge: 0,
+  setHeaders(res, filePath) {
+    const file = path.basename(filePath);
+    if (['index.html', 'app.js', 'supabase-config.js'].includes(file)) {
+      // Evita que o navegador continue usando o JavaScript antigo após uma publicação.
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 app.use((req, res) => res.status(404).json({ error: 'Página ou recurso não encontrado.' }));
 app.use((err, req, res, next) => {
   if (res.headersSent) return next(err);

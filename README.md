@@ -1,41 +1,42 @@
-# MK Gaming — autenticação Supabase
+# MK Gaming — autenticação v2
 
-Projeto com interface de login/cadastro por e-mail e login social Discord.
+Esta versão reorganiza a interface de autenticação em duas telas distintas: **Entrar** e **Criar sua conta**. O login com Discord fica disponível nas duas telas.
 
-## Configuração rápida
+## O que foi corrigido
+- Login e cadastro usam formulários separados, com campos e botões próprios.
+- Cadastro exige senha de pelo menos 12 caracteres e confirmação da senha.
+- Erros de login, cadastro e Discord são mostrados junto à ação correspondente.
+- O login Discord usa o fluxo OAuth do Supabase e faz navegação explícita para a URL retornada.
+- Os arquivos HTML e JavaScript de autenticação usam cabeçalhos `no-cache`, para evitar que o navegador continue carregando o código anterior.
+- O endpoint `/api/config` continua disponível quando o projeto é executado com Node.js/Express.
 
-1. Confira `public/supabase-config.js`. Ele contém apenas a URL do projeto e a **Publishable key** pública do Supabase. Nunca coloque uma chave `sb_secret_` ou `service_role` nesse arquivo.
-2. No Supabase, mantenha o provedor Email habilitado e confirme se a confirmação de e-mail está configurada como deseja.
-3. No Supabase, em Authentication → Sign In / Providers → Discord, habilite o provedor e configure o Client ID e Client Secret da aplicação Discord.
-4. No Discord Developer Portal, em OAuth2 → Redirects, cadastre exatamente a Callback URL exibida pelo Supabase.
-5. Em Authentication → URL Configuration, use `https://nyrax.squareweb.app` como Site URL e inclua o domínio em Redirect URLs. Em produção, prefira URLs específicas quando possível.
-6. Para executar com Node.js: `npm install` e `npm start`. O servidor usa `PORT` do ambiente.
+## Configuração do Supabase
+A URL do projeto e a chave **Publishable** estão no arquivo `public/supabase-config.js`. A chave publishable/anon é pública por definição; não coloque nesse arquivo `sb_secret` ou `service_role`.
 
-## Importante sobre hospedagem
+O provedor Discord e as URLs de retorno devem continuar configurados no Supabase:
+- Provider: Discord habilitado, Client ID e Client Secret cadastrados no painel do Supabase.
+- Discord Developer Portal → OAuth2 → Redirects: cadastrar exatamente a Callback URL que o Supabase mostra para o provedor Discord.
+- Supabase → Authentication → URL Configuration: Site URL igual ao domínio público do site e Redirect URLs autorizando o domínio do site, por exemplo `https://nyrax.squareweb.app/**`.
+- O endereço usado pelo site para retorno é a origem atual com `/` no final. Para testar localmente em `http://localhost:3000`, adicione também `http://localhost:3000/**` em Redirect URLs; remova essa autorização quando não precisar mais dela.
 
-O frontend agora tenta primeiro `GET /api/config` e usa `public/supabase-config.js` como fallback se a hospedagem servir somente arquivos estáticos. O fallback contém uma chave publicável, que é feita para uso no cliente. As regras de segurança dos dados devem ser garantidas no Supabase, não pela ocultação dessa chave.
+## Executar localmente
+1. Instale Node.js LTS.
+2. Copie `.env.example` para `.env` se estiver executando o servidor Node.js.
+3. Preencha `SUPABASE_PUBLISHABLE_KEY` no `.env` se quiser que o servidor forneça a configuração. O arquivo `public/supabase-config.js` também tem a chave publicável para hospedagem estática.
+4. Execute `npm install`, depois `npm run check` e `npm start`.
+5. Abra `http://localhost:3000`.
 
-O SDK é carregado do `esm.sh`, portanto a hospedagem precisa permitir scripts e conexões HTTPS com esse domínio e com o projeto Supabase. O servidor Express inclui a origem Supabase atual na política CSP.
+## Publicação
+Publique **todo o conteúdo atualizado da pasta `Nyrax-web-main`**, incluindo `public/index.html`, `public/app.js`, `public/styles.css`, `public/supabase-config.js` e `server.js` se a hospedagem executar Node.js. Não envie apenas o `index.html`. Se o serviço executar somente arquivos estáticos, publique os quatro arquivos de `public` e confirme que o host permite requisições HTTPS ao projeto Supabase.
 
-## Fluxos
+Depois de publicar, faça uma atualização forçada ou abra uma janela anônima. No Android/Chrome, também pode limpar os dados/cache do site. Os arquivos `index.html`, `app.js` e `supabase-config.js` têm parâmetros de versão e cabeçalhos para evitar código antigo em cache.
 
-- Criar conta por e-mail: Supabase Auth `signUp`, com mensagem de confirmação de e-mail.
-- Entrar por e-mail: Supabase Auth `signInWithPassword`.
-- Discord: OAuth com navegação explícita para a URL de autorização retornada pelo Supabase.
-- Sair: `signOut`.
-- A alternância entre entrar e criar conta muda título, texto, validação e ação do formulário.
+## Limitações e teste
+Esta versão foi validada quanto à sintaxe e integridade dos arquivos. Não foi possível autenticar de fato contra o projeto Supabase nem validar o OAuth publicado a partir deste ambiente. Depois da publicação, teste:
+1. Abrir Entrar e confirmar que há apenas os campos de login e o botão Entrar.
+2. Abrir Criar conta e confirmar que aparecem os campos Criar senha e Confirmar senha e o botão Criar conta.
+3. Criar uma conta de teste e confirmar o e-mail.
+4. Entrar com essa conta.
+5. Testar Continuar com Discord. Se falhar, a mensagem mostrada abaixo do botão indicará o tipo de configuração a verificar.
 
-## Verificação
-
-Execute `npm install`, `npm run check` e `npm start`. Depois teste no navegador:
-1. Abrir Entrar e alternar para Criar conta.
-2. Cadastrar um endereço de e-mail de teste.
-3. Confirmar o e-mail, caso a confirmação esteja ativada.
-4. Entrar e sair.
-5. Clicar em Continuar com Discord, autorizar e verificar se retorna ao site.
-
-A integração foi verificada por sintaxe neste pacote, mas não é possível garantir autenticação real sem executar os testes contra o projeto Supabase e a hospedagem de produção.
-
-## Segurança
-
-Nunca exponha o Client Secret do Discord, `sb_secret_` ou `service_role`. A Publishable key no frontend não é um segredo. Não crie tabelas com dados privados sem Row Level Security (RLS) e políticas apropriadas.
+Nunca publique o Client Secret do Discord, senhas do banco ou chaves `sb_secret`/`service_role`.
