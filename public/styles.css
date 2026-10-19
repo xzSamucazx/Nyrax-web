@@ -91,3 +91,17 @@ footer .brand-logo{width:40px;height:40px}
 .profile-editor .primary{align-self:flex-start}
 .profile-editor .form-message{margin:0}
 @media(max-width:760px){.brand-logo{width:42px;height:42px}.brand{gap:8px}.signed-in{max-width:105px}}
+
+
+/* Perfil social, horas jogadas e amizades — MK Gaming */
+.social-panel{border:1px solid #a98bd83b;background:linear-gradient(145deg,#12101a,#0d0b12);border-radius:16px;padding:clamp(18px,3vw,28px);min-width:0}
+.social-panel h3{font-size:24px;margin:8px 0}.social-panel h4{font-size:15px;margin:16px 0 10px;color:var(--silver)}
+.social-panel .muted{line-height:1.6}.social-profile-form,.hours-form,.search-form{display:flex;flex-direction:column;gap:9px;margin-top:16px}
+.social-panel label{font-size:12px;color:var(--muted)}.social-panel input:not([type=checkbox]),.social-panel textarea{width:100%;font:inherit;color:var(--text);background:#0a090e;border:1px solid var(--line);border-radius:8px;padding:11px;min-width:0}
+.social-panel textarea{resize:vertical}.social-panel input:focus,.social-panel textarea:focus{outline:2px solid #a98bd833;border-color:#b69ae8}
+.privacy-toggle{display:flex;align-items:center;gap:9px;line-height:1.5}.privacy-toggle input{accent-color:#a98bd8;width:16px;height:16px}
+.social-panel button{min-height:38px}.social-divider{height:1px;background:var(--line);margin:22px 0}.social-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.social-item{display:flex;align-items:center;gap:8px;justify-content:space-between;border:1px solid #a98bd82b;border-radius:10px;padding:11px;background:#0b0910;min-width:0}
+.social-item-info{display:flex;flex-direction:column;gap:4px;min-width:0}.social-item-info strong{font-size:13px;overflow-wrap:anywhere}.social-item-info span{font-size:11px;color:var(--muted);overflow-wrap:anywhere}.social-panel .compact{font-size:11px;padding:7px 10px;min-height:32px;white-space:nowrap}.search-row{display:flex;gap:8px}.search-row input{flex:1}.social-panel .small{font-size:12px}.split{align-items:start}.split .social-panel{grid-column:1/-1}
+@media(min-width:900px){.split{grid-template-columns:minmax(0,0.85fr) minmax(0,1fr)}.split .social-panel{grid-column:1/-1}}
+@media(max-width:600px){.social-item{align-items:flex-start;flex-wrap:wrap}.social-item .compact{margin-left:auto}.search-row{align-items:stretch}.social-panel{padding:16px}}

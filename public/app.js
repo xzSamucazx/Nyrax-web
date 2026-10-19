@@ -16,6 +16,13 @@ const profileEditor = $('#profileEditor');
 const displayNameInput = $('#displayNameInput');
 const profileMessage = $('#profileMessage');
 let currentUser = null;
+let socialProfile = null;
+const socialContent = $('#socialContent');
+const socialIntro = $('#socialIntro');
+const hoursList = $('#hoursList');
+const searchResults = $('#searchResults');
+const friendRequests = $('#friendRequests');
+const friendsList = $('#friendsList');
 
 let supabase = null;
 let authReady = false;
@@ -82,6 +89,9 @@ function renderAccount(user) {
     $('#accountSignup').classList.add('hidden');
     $('#logoutButton').classList.remove('hidden');
     $('#accountNote').textContent = 'Sua conta está conectada ao Supabase Auth.';
+    socialContent.classList.remove('hidden');
+    socialIntro.textContent = 'Edite seu perfil, registre suas horas jogadas e conecte-se com outros jogadores.';
+    loadSocialData().catch(error => { console.error('MK social load failed:', error?.message || error); $('#socialProfileMessage').textContent = 'Não foi possível carregar os dados sociais. Confira se o SQL de configuração foi executado no Supabase.'; });
   } else {
     const login = document.createElement('button');
     login.className = 'ghost';
@@ -104,6 +114,8 @@ function renderAccount(user) {
     $('#accountNote').textContent = authReady
       ? 'Escolha entrar com e-mail ou continuar com Discord.'
       : 'A conexão com a autenticação ainda não foi confirmada.';
+    socialContent.classList.add('hidden');
+    socialIntro.textContent = 'Entre na sua conta para gerenciar seu perfil, suas horas jogadas e amizades.';
   }
 }
 
@@ -167,6 +179,8 @@ async function loadAccount() {
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
     renderAccount(data.session?.user || null);
+    discordButton.disabled = false;
+    discordButton.innerHTML = '<span class="discord-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.73 5.35a18.3 18.3 0 0 0-4.52-1.4.07.07 0 0 0-.08.04c-.2.35-.43.8-.59 1.16a16.9 16.9 0 0 0-5.08 0c-.16-.37-.4-.81-.6-1.16a.08.08 0 0 0-.08-.04 18.2 18.2 0 0 0-4.52 1.4.07.07 0 0 0-.03.03C1.35 9.65.56 13.82.95 17.93c0 .02.02.04.03.05a18.4 18.4 0 0 0 5.54 2.8.08.08 0 0 0 .09-.03c.43-.59.81-1.21 1.14-1.87a.08.08 0 0 0-.04-.1 12.1 12.1 0 0 1-1.73-.82.08.08 0 0 1-.01-.13c.12-.09.23-.18.34-.27a.08.08 0 0 1 .08-.01c3.63 1.66 7.56 1.66 11.15 0a.08.08 0 0 1 .08.01c.11.09.22.19.34.27a.08.08 0 0 1-.01.13c-.55.32-1.13.59-1.73.82a.08.08 0 0 0-.04.1c.33.66.71 1.28 1.14 1.87a.08.08 0 0 0 .09.03 18.3 18.3 0 0 0 5.55-2.8.08.08 0 0 0 .03-.05c.46-4.75-.77-8.88-3.27-12.55a.06.06 0 0 0-.03-.03ZM8.02 14.9c-1.09 0-1.99-1-1.99-2.23s.88-2.23 1.99-2.23c1.12 0 2.01 1.01 1.99 2.23 0 1.23-.88 2.23-1.99 2.23Zm7.96 0c-1.09 0-1.99-1-1.99-2.23s.88-2.23 1.99-2.23c1.12 0 2.01 1.01 1.99 2.23 0 1.23-.87 2.23-1.99 2.23Z"/></svg></span>Continuar com Discord';
 
     supabase.auth.onAuthStateChange((event, session) => {
       renderAccount(session?.user || null);
@@ -305,6 +319,8 @@ async function saveDisplayName() {
   try {
     const { data, error } = await supabase.auth.updateUser({ data: { display_name: displayName } });
     if (error) throw error;
+    const { error: profileError } = await supabase.from('profiles').upsert({ id: data.user.id, display_name: displayName, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+    if (profileError) throw profileError;
     renderAccount(data.user);
     message(profileMessage, 'Nome atualizado com sucesso.', 'success');
   } catch (error) {
@@ -321,12 +337,168 @@ async function logoutAccount() {
   }
 }
 
+
+function escapeText(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+function socialMessage(id, text='', kind='error') {
+  const el = document.getElementById(id); if (!el) return;
+  el.textContent = text; el.dataset.kind = kind;
+}
+async function ensureSocialProfile(user) {
+  const meta = user.user_metadata || {};
+  const name = displayNameFor(user);
+  const { data, error } = await supabase.from('profiles').upsert({
+    id: user.id, display_name: name, updated_at: new Date().toISOString()
+  }, { onConflict: 'id', ignoreDuplicates: false }).select().single();
+  if (error) throw error;
+  socialProfile = data;
+  $('#profileBio').value = data.bio || '';
+  $('#profilePublic').checked = data.is_public !== false;
+  return data;
+}
+async function loadSocialData() {
+  if (!supabase || !currentUser) return;
+  try {
+    await ensureSocialProfile(currentUser);
+    await Promise.all([loadHours(), loadFriendRequests(), loadFriends()]);
+  } catch (error) {
+    console.error('Social profile setup failed:', error?.message || error);
+    socialMessage('socialProfileMessage', 'Não foi possível carregar o perfil. Execute o arquivo supabase/mk-gaming-social.sql no SQL Editor do Supabase.');
+  }
+}
+async function saveSocialProfile() {
+  if (!currentUser) return;
+  const bio = $('#profileBio').value.trim();
+  const isPublic = $('#profilePublic').checked;
+  const displayName = displayNameInput.value.trim();
+  if (displayName.length < 2 || displayName.length > 32) {
+    socialMessage('socialProfileMessage', 'Defina primeiro um nome de exibição entre 2 e 32 caracteres.'); return;
+  }
+  const button = $('#saveSocialProfile'); button.disabled = true; button.textContent = 'Salvando…';
+  try {
+    const { error: authError } = await supabase.auth.updateUser({ data: { display_name: displayName } });
+    if (authError) throw authError;
+    const { data, error } = await supabase.from('profiles').upsert({ id: currentUser.id, display_name: displayName, bio, is_public: isPublic, updated_at: new Date().toISOString() }, { onConflict: 'id' }).select().single();
+    if (error) throw error;
+    socialProfile = data;
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData?.user) renderAccount(userData.user);
+    socialMessage('socialProfileMessage', 'Perfil salvo com sucesso.', 'success');
+  } catch (error) {
+    socialMessage('socialProfileMessage', 'Não foi possível salvar. Confira se o SQL social foi executado no Supabase.');
+    console.error('Save social profile failed:', error?.message || error);
+  } finally { button.disabled = false; button.textContent = 'Salvar perfil'; }
+}
+async function loadHours() {
+  const { data, error } = await supabase.from('game_hours').select('id, game_name, hours_played, updated_at').eq('user_id', currentUser.id).order('updated_at', { ascending: false });
+  if (error) throw error;
+  hoursList.replaceChildren();
+  if (!data.length) { hoursList.innerHTML = '<p class="muted small">Você ainda não registrou horas jogadas.</p>'; return; }
+  for (const item of data) {
+    const row = document.createElement('div'); row.className = 'social-item';
+    const info = document.createElement('div'); info.className = 'social-item-info';
+    const name = document.createElement('strong'); name.textContent = item.game_name;
+    const hours = document.createElement('span'); hours.textContent = `${Number(item.hours_played)} h jogadas`;
+    info.append(name, hours);
+    const del = document.createElement('button'); del.className = 'ghost compact'; del.textContent = 'Remover'; del.addEventListener('click', async () => {
+      const { error: deleteError } = await supabase.from('game_hours').delete().eq('id', item.id).eq('user_id', currentUser.id);
+      if (deleteError) { socialMessage('hoursMessage', 'Não foi possível remover esse registro.'); return; }
+      await loadHours();
+    });
+    row.append(info, del); hoursList.append(row);
+  }
+}
+async function saveHours(event) {
+  event.preventDefault(); socialMessage('hoursMessage');
+  if (!currentUser) return;
+  const gameName = $('#gameName').value.trim(); const hours = Number($('#gameHours').value);
+  if (gameName.length < 1 || gameName.length > 80 || !Number.isFinite(hours) || hours < 0 || hours > 100000) { socialMessage('hoursMessage', 'Informe um jogo e horas entre 0 e 100.000.'); return; }
+  const button = $('#saveHours'); button.disabled = true; button.textContent = 'Salvando…';
+  try {
+    const { error } = await supabase.from('game_hours').upsert({ user_id: currentUser.id, game_name: gameName, hours_played: hours, updated_at: new Date().toISOString() }, { onConflict: 'user_id,game_name' });
+    if (error) throw error;
+    $('#hoursForm').reset(); socialMessage('hoursMessage', 'Horas registradas.', 'success'); await loadHours();
+  } catch (error) { socialMessage('hoursMessage', 'Não foi possível registrar as horas. Confira a configuração SQL do Supabase.'); console.error('Save hours failed:', error?.message || error); }
+  finally { button.disabled = false; button.textContent = 'Adicionar horas'; }
+}
+function makeProfileCard(profile, actionLabel, action) {
+  const card = document.createElement('div'); card.className = 'social-item';
+  const info = document.createElement('div'); info.className = 'social-item-info';
+  const name = document.createElement('strong'); name.textContent = profile.display_name || 'Jogador MK';
+  const bio = document.createElement('span'); bio.textContent = profile.bio || 'Membro da MK Gaming';
+  info.append(name, bio); card.append(info);
+  if (actionLabel) { const button = document.createElement('button'); button.className = 'ghost compact'; button.textContent = actionLabel; button.addEventListener('click', () => action(button)); card.append(button); }
+  return card;
+}
+async function searchPlayers(event) {
+  event.preventDefault(); searchResults.replaceChildren(); socialMessage('searchMessage');
+  const term = $('#playerSearch').value.trim();
+  if (term.length < 2) { socialMessage('searchMessage', 'Digite pelo menos 2 caracteres.'); return; }
+  try {
+    const { data, error } = await supabase.from('profiles').select('id, display_name, bio').eq('is_public', true).ilike('display_name', `%${term.replace(/[%_,]/g, '')}%`).neq('id', currentUser.id).limit(20);
+    if (error) throw error;
+    if (!data.length) { socialMessage('searchMessage', 'Nenhum perfil público encontrado.'); return; }
+    for (const profile of data) {
+      const card = makeProfileCard(profile, 'Adicionar', async button => {
+        button.disabled = true;
+        try {
+          const { error: requestError } = await supabase.from('friendships').insert({ requester_id: currentUser.id, addressee_id: profile.id, status: 'pending' });
+          if (requestError) throw requestError;
+          button.textContent = 'Solicitado'; socialMessage('searchMessage', 'Solicitação de amizade enviada.', 'success');
+        } catch (error) {
+          button.disabled = false;
+          const msg = String(error?.message || '').toLowerCase();
+          socialMessage('searchMessage', msg.includes('duplicate') || msg.includes('unique') ? 'Já existe uma solicitação ou amizade entre vocês.' : 'Não foi possível enviar. Talvez já exista uma solicitação.');
+        }
+      }); searchResults.append(card);
+    }
+  } catch (error) { socialMessage('searchMessage', 'A busca falhou. Confira se o SQL social foi executado no Supabase.'); console.error('Player search failed:', error?.message || error); }
+}
+async function loadFriendRequests() {
+  const { data, error } = await supabase.from('friendships').select('id, requester_id, profiles!friendships_requester_id_fkey(id, display_name, bio)').eq('addressee_id', currentUser.id).eq('status', 'pending');
+  if (error) throw error;
+  friendRequests.replaceChildren();
+  if (!data.length) { friendRequests.innerHTML = '<p class="muted small">Nenhuma solicitação pendente.</p>'; return; }
+  for (const request of data) {
+    const card = makeProfileCard(request.profiles || {display_name:'Jogador MK'}, 'Aceitar', async button => {
+      button.disabled = true;
+      const { error: updateError } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', request.id).eq('addressee_id', currentUser.id);
+      if (updateError) { button.disabled = false; socialMessage('socialProfileMessage', 'Não foi possível aceitar a solicitação.'); return; }
+      await loadFriendRequests(); await loadFriends();
+    });
+    const decline = document.createElement('button'); decline.className = 'ghost compact'; decline.textContent = 'Recusar'; decline.addEventListener('click', async () => {
+      const { error: deleteError } = await supabase.from('friendships').delete().eq('id', request.id).eq('addressee_id', currentUser.id);
+      if (!deleteError) await loadFriendRequests();
+    }); card.append(decline); friendRequests.append(card);
+  }
+}
+async function loadFriends() {
+  const { data, error } = await supabase.from('friendships').select('id, requester_id, addressee_id, requester:profiles!friendships_requester_id_fkey(id, display_name, bio), addressee:profiles!friendships_addressee_id_fkey(id, display_name, bio)').eq('status', 'accepted').or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
+  if (error) throw error;
+  friendsList.replaceChildren();
+  if (!data.length) { friendsList.innerHTML = '<p class="muted small">Sua lista de amigos está vazia por enquanto.</p>'; return; }
+  for (const friendship of data) {
+    const friend = friendship.requester_id === currentUser.id ? friendship.addressee : friendship.requester;
+    if (!friend) continue;
+    const card = makeProfileCard(friend, 'Remover', async button => {
+      button.disabled = true;
+      const { error: removeError } = await supabase.from('friendships').delete().eq('id', friendship.id);
+      if (removeError) { button.disabled = false; return; }
+      await loadFriends();
+    }); friendsList.append(card);
+  }
+}
+
 $('#loginOpen').addEventListener('click', () => openAuth('login'));
 $('#signupOpen').addEventListener('click', () => openAuth('register'));
 $('#heroSignup').addEventListener('click', () => openAuth('register'));
 $('#accountSignup').addEventListener('click', () => openAuth('register'));
 $('#logoutButton').addEventListener('click', logoutAccount);
 $('#saveDisplayName').addEventListener('click', saveDisplayName);
+$('#saveSocialProfile').addEventListener('click', saveSocialProfile);
+$('#hoursForm').addEventListener('submit', saveHours);
+$('#playerSearchForm').addEventListener('submit', searchPlayers);
 $('#showRegister').addEventListener('click', () => setView('register'));
 $('#showLogin').addEventListener('click', () => setView('login'));
 $('#discordAuth').addEventListener('click', loginWithDiscord);
