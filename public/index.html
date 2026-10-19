@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#09090d"><meta name="description" content="Explore jogos e acompanhe a evolução da plataforma MK Gaming.">
-  <title>MK Gaming — Seu próximo mundo começa aqui</title><link rel="stylesheet" href="/styles.css?v=20261019-purple1">
+  <title>MK Gaming — Seu próximo mundo começa aqui</title><link rel="stylesheet" href="/styles.css?v=20261019-profilelogo2">
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="#inicio" aria-label="MK Gaming, início"><span class="moon" aria-hidden="true">MK</span><span>MK<small>GAMING</small></span></a>
+  <a class="brand" href="#inicio" aria-label="MK Gaming, início"><img class="brand-logo" src="/assets/mk-logo.png?v=2" alt=""><span>MK<small>GAMING</small></span></a>
   <nav aria-label="Navegação principal"><a href="#inicio">Início</a><a href="#biblioteca">Biblioteca</a><a href="#conta">Conta</a></nav>
   <div class="actions" id="headerActions"><button class="ghost" id="loginOpen">Entrar</button><button class="primary" id="signupOpen">Criar conta</button></div>
 </header>
 <main>
   <section class="hero" id="inicio"><div class="hero-art"><div class="orb" aria-hidden="true"></div><div class="hero-copy"><p class="eyebrow">UM NOVO UNIVERSO DE JOGOS</p><h1>Seu próximo<br><em>mundo começa aqui.</em></h1><p class="lead">Descubra jogos, acompanhe sua biblioteca e construa seu perfil na MK.</p><div class="actions"><a class="primary linkbutton" href="#biblioteca">Explorar biblioteca</a><button class="ghost" id="heroSignup">Criar perfil</button></div></div><div class="hero-mark">MK<span>GAMING PLATFORM</span></div></div></section>
   <section class="section" id="biblioteca"><div class="section-head"><div><p class="eyebrow">EXPLORE</p><h2>Sua biblioteca começa aqui</h2><p class="muted">Os jogos serão apresentados conforme forem adicionados e liberados na plataforma.</p></div><span class="count">01 / BIBLIOTECA</span></div><div class="game-grid"><article class="game-card featured"><div class="game-art farm"><span>EM AVALIAÇÃO TÉCNICA</span><strong>Stardew Valley</strong></div><div class="game-info"><div><h3>Stardew Valley</h3><p>Possível versão para navegador em avaliação. Ainda não disponível.</p></div><span class="status">Em avaliação</span></div></article><article class="empty-card"><div class="plus" aria-hidden="true">＋</div><h3>Mais jogos em breve</h3><p>A biblioteca será ampliada conforme novos títulos forem autorizados e preparados.</p></article></div></section>
-  <section class="section split" id="conta"><div><p class="eyebrow">SUA CONTA</p><h2>Uma biblioteca<br>para você.</h2><p class="muted">Crie seu perfil para acompanhar a evolução da plataforma. Use uma senha exclusiva para sua conta MK Gaming.</p></div><div class="account-panel"><div class="panel-icon" aria-hidden="true">MK</div><h3 id="accountTitle">MK ID</h3><p id="accountDescription">Seu perfil começa com uma conta pessoal.</p><button class="primary" id="accountSignup">Criar minha conta</button><button class="ghost hidden" id="logoutButton">Sair da conta</button><small id="accountNote">O cadastro usa o Supabase Auth e pode exigir confirmação do e-mail.</small></div></section>
+  <section class="section split" id="conta"><div><p class="eyebrow">SUA CONTA</p><h2>Uma biblioteca<br>para você.</h2><p class="muted">Crie seu perfil para acompanhar a evolução da plataforma. Use uma senha exclusiva para sua conta MK Gaming.</p></div><div class="account-panel"><div class="panel-icon" aria-hidden="true"><img class="account-logo" src="/assets/mk-logo.png?v=2" alt=""></div><h3 id="accountTitle">MK ID</h3><p id="accountDescription">Seu perfil começa com uma conta pessoal.</p><div id="profileEditor" class="profile-editor hidden"><label for="displayNameInput">Seu nome de exibição</label><input id="displayNameInput" maxlength="32" autocomplete="nickname" placeholder="Como quer aparecer na MK"><button class="primary" id="saveDisplayName" type="button">Salvar nome</button><p id="profileMessage" class="form-message" role="status" aria-live="polite"></p></div><button class="primary" id="accountSignup">Criar minha conta</button><button class="ghost hidden" id="logoutButton">Sair da conta</button><small id="accountNote">O cadastro usa o Supabase Auth e pode exigir confirmação do e-mail.</small></div></section>
 </main>
-<footer><a class="brand" href="#inicio"><span class="moon" aria-hidden="true">MK</span><span>MK<small>GAMING</small></span></a><p>Uma plataforma independente para explorar jogos.</p><small>MK Gaming © <span id="year"></span></small></footer>
+<footer><a class="brand" href="#inicio"><img class="brand-logo" src="/assets/mk-logo.png?v=2" alt=""><span>MK<small>GAMING</small></span></a><p>Uma plataforma independente para explorar jogos.</p><small>MK Gaming © <span id="year"></span></small></footer>
 <dialog id="authDialog" aria-labelledby="loginTitle">
   <div class="dialog-card">
     <button type="button" class="close" id="closeDialog" aria-label="Fechar">×</button>
@@ -42,6 +42,9 @@
       <h2 id="registerTitle">Criar sua conta</h2>
       <p class="muted">Crie seu acesso pessoal à MK Gaming.</p>
       <form id="registerForm" class="auth-form">
+        <label for="registerDisplayName">Nome de exibição
+          <input id="registerDisplayName" name="displayName" type="text" autocomplete="nickname" minlength="2" maxlength="32" placeholder="Como quer aparecer na MK" required>
+        </label>
         <label for="registerEmail">E-mail
           <input id="registerEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="voce@exemplo.com" required>
         </label>
@@ -58,11 +61,11 @@
     </section>
 
     <div class="auth-divider" aria-hidden="true"><span>OU</span></div>
-    <button class="discord-button" id="discordAuth" type="button"><span class="discord-mark" aria-hidden="true">D</span>Continuar com Discord</button>
+    <button class="discord-button" id="discordAuth" type="button"><span class="discord-mark" aria-hidden="true"><svg viewBox="0 0 24 24" role="img" aria-label=""><path fill="currentColor" d="M19.73 5.35a18.3 18.3 0 0 0-4.52-1.4.07.07 0 0 0-.08.04c-.2.35-.43.8-.59 1.16a16.9 16.9 0 0 0-5.08 0c-.16-.37-.4-.81-.6-1.16a.08.08 0 0 0-.08-.04 18.2 18.2 0 0 0-4.52 1.4.07.07 0 0 0-.03.03C1.35 9.65.56 13.82.95 17.93c0 .02.02.04.03.05a18.4 18.4 0 0 0 5.54 2.8.08.08 0 0 0 .09-.03c.43-.59.81-1.21 1.14-1.87a.08.08 0 0 0-.04-.1 12.1 12.1 0 0 1-1.73-.82.08.08 0 0 1-.01-.13c.12-.09.23-.18.34-.27a.08.08 0 0 1 .08-.01c3.63 1.66 7.56 1.66 11.15 0a.08.08 0 0 1 .08.01c.11.09.22.19.34.27a.08.08 0 0 1-.01.13c-.55.32-1.13.59-1.73.82a.08.08 0 0 0-.04.1c.33.66.71 1.28 1.14 1.87a.08.08 0 0 0 .09.03 18.3 18.3 0 0 0 5.55-2.8.08.08 0 0 0 .03-.05c.46-4.75-.77-8.88-3.27-12.55a.06.06 0 0 0-.03-.03ZM8.02 14.9c-1.09 0-1.99-1-1.99-2.23s.88-2.23 1.99-2.23c1.12 0 2.01 1.01 1.99 2.23 0 1.23-.88 2.23-1.99 2.23Zm7.96 0c-1.09 0-1.99-1-1.99-2.23s.88-2.23 1.99-2.23c1.12 0 2.01 1.01 1.99 2.23 0 1.23-.87 2.23-1.99 2.23Z"/></svg></span>Continuar com Discord</button>
     <p class="form-message" id="oauthMessage" role="status" aria-live="polite"></p>
     <small>O login com Discord é feito por autorização segura do Supabase. Nunca informe sua senha do Discord neste site.</small>
   </div>
 </dialog>
-<script src="/supabase-config.js?v=20261019-purple1"></script>
-<script type="module" src="/app.js?v=20261019-purple1"></script>
+<script src="/supabase-config.js?v=20261019-profilelogo2"></script>
+<script type="module" src="/app.js?v=20261019-profilelogo2"></script>
 </body></html>

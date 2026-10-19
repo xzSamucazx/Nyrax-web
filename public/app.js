@@ -12,10 +12,20 @@ const oauthMessage = $('#oauthMessage');
 const loginSubmit = $('#loginSubmit');
 const registerSubmit = $('#registerSubmit');
 const discordButton = $('#discordAuth');
+const profileEditor = $('#profileEditor');
+const displayNameInput = $('#displayNameInput');
+const profileMessage = $('#profileMessage');
+let currentUser = null;
 
 let supabase = null;
 let authReady = false;
 let activeView = 'login';
+
+function displayNameFor(user) {
+  const meta = user?.user_metadata || {};
+  const chosen = String(meta.display_name || meta.nickname || meta.global_name || meta.full_name || meta.name || '').trim();
+  return chosen || 'Jogador MK';
+}
 
 function message(element, text = '', kind = 'error') {
   element.textContent = text;
@@ -52,10 +62,11 @@ function renderAccount(user) {
   const actions = $('#headerActions');
   actions.replaceChildren();
 
+  currentUser = user || null;
   if (user) {
     const label = document.createElement('span');
     label.className = 'signed-in';
-    label.textContent = user.email || user.user_metadata?.full_name || user.user_metadata?.name || 'Conta MK';
+    label.textContent = displayNameFor(user);
     const logout = document.createElement('button');
     logout.className = 'ghost';
     logout.type = 'button';
@@ -64,7 +75,10 @@ function renderAccount(user) {
     actions.append(label, logout);
 
     $('#accountTitle').textContent = 'Sua conta MK';
-    $('#accountDescription').textContent = user.email || user.user_metadata?.full_name || user.user_metadata?.name || 'Conta conectada';
+    $('#accountDescription').textContent = 'Seu perfil está conectado. Seu e-mail permanece privado na página.';
+    profileEditor.classList.remove('hidden');
+    displayNameInput.value = displayNameFor(user);
+    message(profileMessage);
     $('#accountSignup').classList.add('hidden');
     $('#logoutButton').classList.remove('hidden');
     $('#accountNote').textContent = 'Sua conta está conectada ao Supabase Auth.';
@@ -82,6 +96,7 @@ function renderAccount(user) {
     signup.addEventListener('click', () => openAuth('register'));
     actions.append(login, signup);
 
+    profileEditor.classList.add('hidden');
     $('#accountTitle').textContent = 'MK ID';
     $('#accountDescription').textContent = 'Crie sua conta pessoal para começar seu perfil.';
     $('#accountSignup').classList.remove('hidden');
@@ -209,9 +224,14 @@ async function submitRegister(event) {
     return;
   }
 
+  const displayName = $('#registerDisplayName').value.trim();
   const email = $('#registerEmail').value.trim().toLowerCase();
   const password = $('#registerPassword').value;
   const confirmation = $('#confirmPassword').value;
+  if (displayName.length < 2) {
+    message(registerMessage, 'Escolha um nome com pelo menos 2 caracteres.');
+    return;
+  }
   if (password.length < 12) {
     message(registerMessage, 'A senha precisa ter pelo menos 12 caracteres.');
     return;
@@ -227,7 +247,7 @@ async function submitRegister(event) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/` }
+      options: { emailRedirectTo: `${window.location.origin}/`, data: { display_name: displayName } }
     });
     if (error) throw error;
     registerForm.reset();
@@ -274,6 +294,25 @@ async function loginWithDiscord() {
   }
 }
 
+async function saveDisplayName() {
+  message(profileMessage);
+  if (!supabase || !currentUser) { message(profileMessage, 'Entre na sua conta antes de alterar o nome.'); return; }
+  const displayName = displayNameInput.value.trim();
+  if (displayName.length < 2 || displayName.length > 32) { message(profileMessage, 'O nome precisa ter entre 2 e 32 caracteres.'); return; }
+  const saveButton = $('#saveDisplayName');
+  saveButton.disabled = true;
+  saveButton.textContent = 'Salvando…';
+  try {
+    const { data, error } = await supabase.auth.updateUser({ data: { display_name: displayName } });
+    if (error) throw error;
+    renderAccount(data.user);
+    message(profileMessage, 'Nome atualizado com sucesso.', 'success');
+  } catch (error) {
+    message(profileMessage, 'Não foi possível salvar o nome. Tente novamente.');
+    console.error('MK Gaming display name update failed:', error?.message || error);
+  } finally { saveButton.disabled = false; saveButton.textContent = 'Salvar nome'; }
+}
+
 async function logoutAccount() {
   if (!supabase) return;
   const { error } = await supabase.auth.signOut();
@@ -287,6 +326,7 @@ $('#signupOpen').addEventListener('click', () => openAuth('register'));
 $('#heroSignup').addEventListener('click', () => openAuth('register'));
 $('#accountSignup').addEventListener('click', () => openAuth('register'));
 $('#logoutButton').addEventListener('click', logoutAccount);
+$('#saveDisplayName').addEventListener('click', saveDisplayName);
 $('#showRegister').addEventListener('click', () => setView('register'));
 $('#showLogin').addEventListener('click', () => setView('login'));
 $('#discordAuth').addEventListener('click', loginWithDiscord);
