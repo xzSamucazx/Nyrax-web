@@ -40,3 +40,11 @@ Esta versão foi validada quanto à sintaxe e integridade dos arquivos. Não foi
 5. Testar Continuar com Discord. Se falhar, a mensagem mostrada abaixo do botão indicará o tipo de configuração a verificar.
 
 Nunca publique o Client Secret do Discord, senhas do banco ou chaves `sb_secret`/`service_role`.
+
+
+## Nome de exibição e logotipo
+- A navegação usa o logotipo MK fornecido para substituir o monograma textual.
+- O cadastro por e-mail solicita um nome de exibição (2–32 caracteres), armazenado nos metadados do Supabase Auth.
+- Após entrar, a página mostra o nome de exibição, nunca o endereço de e-mail; o usuário pode alterar o nome na seção Conta.
+- No login Discord, o nome inicial vem dos metadados disponibilizados pelo provedor e pode ser alterado na seção Conta.
+- O ícone Discord é um SVG inline e não depende de um pacote externo.
