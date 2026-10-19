@@ -1,12 +1,12 @@
 # MK Gaming — autenticação v2
 
-Esta versão reorganiza a interface de autenticação em duas telas distintas: **Entrar** e **Criar sua conta**. O login com Discord fica disponível nas duas telas.
+Esta versão usa uma paleta preta com roxo metálico e reorganiza a interface de autenticação em duas telas distintas: **Entrar** e **Criar sua conta**. O login com Discord fica disponível nas duas telas.
 
 ## O que foi corrigido
 - Login e cadastro usam formulários separados, com campos e botões próprios.
 - Cadastro exige senha de pelo menos 12 caracteres e confirmação da senha.
 - Erros de login, cadastro e Discord são mostrados junto à ação correspondente.
-- O login Discord usa o fluxo OAuth do Supabase e faz navegação explícita para a URL retornada.
+- O login Discord usa o fluxo OAuth padrão do Supabase JS, que inicia o redirecionamento automaticamente.
 - Os arquivos HTML e JavaScript de autenticação usam cabeçalhos `no-cache`, para evitar que o navegador continue carregando o código anterior.
 - O endpoint `/api/config` continua disponível quando o projeto é executado com Node.js/Express.
 
