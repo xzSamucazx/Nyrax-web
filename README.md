@@ -48,3 +48,18 @@ Nunca publique o Client Secret do Discord, senhas do banco ou chaves `sb_secret`
 - Após entrar, a página mostra o nome de exibição, nunca o endereço de e-mail; o usuário pode alterar o nome na seção Conta.
 - No login Discord, o nome inicial vem dos metadados disponibilizados pelo provedor e pode ser alterado na seção Conta.
 - O ícone Discord é um SVG inline e não depende de um pacote externo.
+
+
+## Recursos sociais MK Gaming (Supabase)
+
+Este pacote inclui perfis, busca de jogadores, solicitações de amizade e registro manual de horas jogadas. Antes de usar os recursos sociais:
+
+1. Abra o Supabase Dashboard do projeto MK Gaming.
+2. Entre em **SQL Editor → New query**.
+3. Abra `supabase/mk-gaming-social.sql`, copie todo o conteúdo e execute.
+4. Publique todos os arquivos atualizados da pasta `public` e mantenha `supabase-config.js` com a URL e a chave **Publishable** do projeto.
+5. Entre com uma conta e teste salvar perfil, registrar horas, buscar outro perfil e aceitar uma solicitação usando uma segunda conta de teste.
+
+Perfis são públicos na busca por padrão; cada usuário pode desativar a opção de aparecer na busca. Os e-mails não são mostrados nos perfis. Horas jogadas são informadas manualmente e não são verificadas automaticamente por plataformas de jogos. O SQL ativa RLS e limita a edição de perfil/horas ao próprio usuário e as solicitações aos participantes.
+
+**Importante:** o SQL deve ser executado uma vez no Supabase antes de testar os recursos sociais. Não compartilhe chaves `sb_secret`/`service_role`.

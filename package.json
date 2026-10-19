@@ -1,8 +1,8 @@
 {
   "name": "mk-gaming",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
-  "description": "MK Gaming with Supabase Auth integration and security headers",
+  "description": "MK Gaming with Supabase Auth, profiles, hours and friendships",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
