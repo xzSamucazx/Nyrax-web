@@ -260,12 +260,12 @@ async function loginWithDiscord() {
     const redirectTo = `${window.location.origin}/`;
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
-      options: { redirectTo, skipBrowserRedirect: true }
+      options: { redirectTo }
     });
     if (error) throw error;
+    // O SDK do Supabase inicia o redirecionamento automaticamente.
+    // Se não houver navegação, mostramos uma mensagem útil em vez de deixar o botão preso.
     if (!data?.url) throw new Error('Supabase não retornou uma URL de autorização.');
-    // Navegação explícita: evita depender de redirecionamento automático do SDK.
-    window.location.href = data.url;
   } catch (error) {
     message(oauthMessage, friendlyOAuthError(error));
     console.error('MK Gaming Discord OAuth error:', error?.message || error);

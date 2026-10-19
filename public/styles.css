@@ -47,3 +47,32 @@ footer{border-top-color:#c7a45b35}
 .dialog-card>.auth-divider{margin:2px 0}
 .dialog-card>.discord-button{min-height:44px}
 .dialog-card>.form-message{margin-top:-6px}
+
+
+/* MK Gaming — acabamento roxo metálico */
+:root{
+  --bg:#09080e;--panel:#12101a;--line:#393044;--text:#f4f0fa;--muted:#aaa3b8;
+  --violet:#b69ae8;--silver:#d9d1e8;--gold:#a98bd8;--gold-soft:#dfcfff;
+}
+.top{background:#09080eef;border-bottom-color:#a98bd844}
+.brand .moon{color:#d8c8f5;border-color:#a98bd877}
+nav a:hover,nav a:focus-visible{color:#e5d7ff}
+.eyebrow{color:#c5a9f4}
+.primary{background:linear-gradient(135deg,#d4c1f3 0%,#a98bd8 48%,#8063b2 100%);border-color:#c4a9ed;color:#17101f;box-shadow:inset 0 1px 0 #ffffff66}
+.primary:hover{background:linear-gradient(135deg,#e6d9ff,#c1a5ed 55%,#9879cc);border-color:#e2d1ff}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #d5baff;outline-offset:3px}
+.ghost:hover{border-color:#b69ae8;color:#e4d5ff}
+.hero-art{border-color:#a98bd855;background:radial-gradient(ellipse at 72% 44%,#7956a877,transparent 30%),radial-gradient(ellipse at 78% 70%,#48316488,transparent 35%),linear-gradient(115deg,#1a1425,#09080e 65%)}
+.orb{border-color:#d8c5f766;box-shadow:0 0 100px #a98bd82b,inset 0 0 80px #c4b2e41a}
+.orb:before{border-color:#d6c4f744}
+.hero h1 em,h2 em{color:#d6c0ff}
+.game-card,.empty-card,.account-panel{border-color:#a98bd83b}
+.farm{background:radial-gradient(ellipse at 80% 15%,#a98bd83b,transparent 42%),linear-gradient(135deg,#292037,#171420 55%,#342447)}
+.game-art span{color:#dfcfff}
+.status{color:#dfcfff;border-color:#745c99;background:#a98bd814}
+.plus,.panel-icon{color:#c5a9f4}
+.dialog-card input:focus{border-color:#b69ae8;outline:2px solid #a98bd833}
+.close,.text-button{color:#dfcfff}
+.text-button:hover{color:#fff}
+footer{border-top-color:#a98bd83b}
+.discord-button:hover{border-color:#b69ae8;background:#211a2c}
