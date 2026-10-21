@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#09090d"><meta name="description" content="Explore jogos e acompanhe a evolução da plataforma MK Gaming.">
-  <title>MK Gaming — Seu próximo mundo começa aqui</title><link rel="stylesheet" href="/styles.css?v=20261019-social1">
+  <title>MK Gaming — Seu próximo mundo começa aqui</title><link rel="stylesheet" href="/styles.css?v=20261019-profiletimer2">
 </head>
 <body>
 <header class="top">
@@ -29,12 +29,13 @@
         </div>
         <div class="social-divider"></div>
         <h4>Horas jogadas</h4>
-        <form id="hoursForm" class="hours-form">
-          <label for="gameName">Nome do jogo</label><input id="gameName" maxlength="80" placeholder="Ex.: Stardew Valley" required>
-          <label for="gameHours">Total de horas</label><input id="gameHours" type="number" min="0" max="100000" step="0.5" placeholder="Ex.: 42.5" required>
-          <button class="primary" type="submit" id="saveHours">Adicionar horas</button>
+        <div class="hours-form" id="hoursTracker">
+          <p class="muted small">Inicie uma sessão quando começar a jogar. A MK contabiliza o tempo enquanto a sessão estiver ativa neste site.</p>
+          <label for="gameName">Jogo que vai jogar</label><input id="gameName" maxlength="80" placeholder="Ex.: Stardew Valley">
+          <div class="timer-readout" id="playTimer">00:00:00</div>
+          <div class="timer-actions"><button class="primary" type="button" id="startPlaySession">Iniciar contagem</button><button class="ghost hidden" type="button" id="stopPlaySession">Finalizar sessão</button></div>
           <p id="hoursMessage" class="form-message" role="status" aria-live="polite"></p>
-        </form>
+        </div>
         <div id="hoursList" class="social-list"></div>
         <div class="social-divider"></div>
         <h4>Encontrar jogadores</h4>
@@ -49,6 +50,30 @@
   </section>
 </main>
 <footer><a class="brand" href="#inicio"><img class="brand-logo" src="/assets/mk-logo.png?v=2" alt=""><span>MK<small>GAMING</small></span></a><p>Uma plataforma independente para explorar jogos.</p><small>MK Gaming © <span id="year"></span></small></footer>
+<dialog id="profileDialog" class="profile-dialog" aria-labelledby="profilePageTitle">
+  <div class="dialog-card profile-page-card">
+    <button type="button" class="close" id="closeProfileDialog" aria-label="Fechar">×</button>
+    <p class="eyebrow">MK PLAYER PROFILE</p>
+    <div id="profileReadView">
+      <div class="profile-cover"></div>
+      <div class="profile-heading"><img id="profileAvatarPreview" class="profile-avatar" src="/assets/mk-logo.png" alt="Avatar do jogador"><div><h2 id="profilePageTitle">Seu perfil</h2><p id="profileHandle" class="muted">Membro da MK Gaming</p></div></div>
+      <p id="profileBioPreview" class="profile-bio-preview">Adicione uma descrição ao seu perfil.</p>
+      <div class="profile-stats"><div><strong id="profileTotalHours">0 h</strong><span>Horas registradas</span></div><div><strong id="profileFriendCount">0</strong><span>Amigos</span></div></div>
+      <h3>Meus jogos</h3><div id="profileGamePreview" class="social-list"><p class="muted small">Nenhum jogo registrado ainda.</p></div>
+      <button type="button" class="primary" id="editProfileButton">Editar perfil</button>
+    </div>
+    <form id="profileEditForm" class="auth-form hidden">
+      <label for="profileEditName">Nome de exibição<input id="profileEditName" maxlength="32" minlength="2" required></label>
+      <label for="profileEditBio">Sobre mim<textarea id="profileEditBio" rows="3" maxlength="280" placeholder="Conte um pouco sobre você"></textarea></label>
+      <label for="profileAvatarFile">Foto de perfil<input id="profileAvatarFile" type="file" accept="image/png,image/jpeg,image/webp"></label>
+      <label class="privacy-toggle"><input id="profileEditPublic" type="checkbox" checked> Meu perfil pode aparecer na busca</label>
+      <p id="profileEditMessage" class="form-message" role="status" aria-live="polite"></p>
+      <button type="submit" class="primary" id="saveProfilePage">Salvar alterações</button>
+      <button type="button" class="ghost" id="cancelProfileEdit">Cancelar</button>
+    </form>
+  </div>
+</dialog>
+
 <dialog id="authDialog" aria-labelledby="loginTitle">
   <div class="dialog-card">
     <button type="button" class="close" id="closeDialog" aria-label="Fechar">×</button>
@@ -98,6 +123,6 @@
     <small>O login com Discord é feito por autorização segura do Supabase. Nunca informe sua senha do Discord neste site.</small>
   </div>
 </dialog>
-<script src="/supabase-config.js?v=20261019-social1"></script>
-<script type="module" src="/app.js?v=20261019-social1"></script>
+<script src="/supabase-config.js?v=20261019-profiletimer2"></script>
+<script type="module" src="/app.js?v=20261019-profiletimer2"></script>
 </body></html>

@@ -23,6 +23,10 @@ const hoursList = $('#hoursList');
 const searchResults = $('#searchResults');
 const friendRequests = $('#friendRequests');
 const friendsList = $('#friendsList');
+const profileDialog = $('#profileDialog');
+let activePlaySession = null;
+let playTimerInterval = null;
+let sessionHeartbeatInterval = null;
 
 let supabase = null;
 let authReady = false;
@@ -79,7 +83,8 @@ function renderAccount(user) {
     logout.type = 'button';
     logout.textContent = 'Sair';
     logout.addEventListener('click', logoutAccount);
-    actions.append(label, logout);
+    const profileButton = document.createElement('button'); profileButton.className = 'ghost'; profileButton.type = 'button'; profileButton.textContent = 'Meu perfil'; profileButton.addEventListener('click', openPlayerProfile);
+    actions.append(profileButton, label, logout);
 
     $('#accountTitle').textContent = 'Sua conta MK';
     $('#accountDescription').textContent = 'Seu perfil está conectado. Seu e-mail permanece privado na página.';
@@ -362,6 +367,7 @@ async function loadSocialData() {
   try {
     await ensureSocialProfile(currentUser);
     await Promise.all([loadHours(), loadFriendRequests(), loadFriends()]);
+    await restoreActivePlaySession();
   } catch (error) {
     console.error('Social profile setup failed:', error?.message || error);
     socialMessage('socialProfileMessage', 'Não foi possível carregar o perfil. Execute o arquivo supabase/mk-gaming-social.sql no SQL Editor do Supabase.');
@@ -390,11 +396,152 @@ async function saveSocialProfile() {
     console.error('Save social profile failed:', error?.message || error);
   } finally { button.disabled = false; button.textContent = 'Salvar perfil'; }
 }
+function formatDuration(seconds) {
+  const total = Math.max(0, Math.floor(seconds));
+  const h = String(Math.floor(total / 3600)).padStart(2, '0');
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+  const sec = String(total % 60).padStart(2, '0');
+  return `${h}:${m}:${sec}`;
+}
+function updatePlayTimer() {
+  const timer = $('#playTimer');
+  if (!timer) return;
+  if (!activePlaySession) { timer.textContent = '00:00:00'; return; }
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(activePlaySession.started_at).getTime()) / 1000));
+  timer.textContent = formatDuration(seconds);
+}
+function showActiveSession() {
+  const active = Boolean(activePlaySession);
+  $('#startPlaySession').classList.toggle('hidden', active);
+  $('#stopPlaySession').classList.toggle('hidden', !active);
+  $('#gameName').disabled = active;
+  updatePlayTimer();
+  if (playTimerInterval) clearInterval(playTimerInterval);
+  if (active) playTimerInterval = setInterval(updatePlayTimer, 1000);
+}
+async function restoreActivePlaySession() {
+  if (!currentUser) return;
+  const { data, error } = await supabase.from('game_sessions').select('id, game_name, started_at, last_heartbeat').eq('user_id', currentUser.id).eq('is_active', true).order('started_at', { ascending: false }).limit(1).maybeSingle();
+  if (error) { console.warn('Automatic game tracking table is not ready:', error.message); return; }
+  if (!data) { activePlaySession = null; showActiveSession(); return; }
+  const last = new Date(data.last_heartbeat || data.started_at).getTime();
+  // If the browser was closed or disconnected for over 2 minutes, stop at the last heartbeat to avoid fake hours.
+  if (Date.now() - last > 120000) {
+    const endAt = new Date(last).toISOString();
+    const elapsed = Math.max(0, (last - new Date(data.started_at).getTime()) / 1000);
+    await supabase.from('game_sessions').update({ is_active: false, ended_at: endAt, elapsed_seconds: Math.floor(elapsed) }).eq('id', data.id).eq('user_id', currentUser.id);
+    if (elapsed >= 60) await addElapsedHours(data.game_name, elapsed);
+    activePlaySession = null; showActiveSession(); await loadHours(); return;
+  }
+  activePlaySession = data;
+  $('#gameName').value = data.game_name;
+  showActiveSession();
+  startHeartbeat();
+}
+function startHeartbeat() {
+  if (sessionHeartbeatInterval) clearInterval(sessionHeartbeatInterval);
+  sessionHeartbeatInterval = setInterval(async () => {
+    if (!activePlaySession || !supabase || !currentUser) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase.from('game_sessions').update({ last_heartbeat: now }).eq('id', activePlaySession.id).eq('user_id', currentUser.id).eq('is_active', true);
+    if (error) console.warn('Game session heartbeat failed:', error.message);
+    else activePlaySession.last_heartbeat = now;
+  }, 60000);
+}
+async function addElapsedHours(gameName, seconds) {
+  const { data: existing, error: readError } = await supabase.from('game_hours').select('id,hours_played').eq('user_id', currentUser.id).ilike('game_name', gameName).maybeSingle();
+  if (readError) throw readError;
+  const total = Math.round(((Number(existing?.hours_played || 0) + seconds / 3600) * 1000)) / 1000;
+  const payload = { user_id: currentUser.id, game_name: gameName, hours_played: total, updated_at: new Date().toISOString() };
+  const { error } = await supabase.from('game_hours').upsert(payload, { onConflict: 'user_id,game_name' });
+  if (error) throw error;
+}
+async function startPlaySession() {
+  if (!currentUser || !supabase) { socialMessage('hoursMessage', 'Entre na sua conta para iniciar a contagem.'); return; }
+  const gameName = $('#gameName').value.trim();
+  if (gameName.length < 1 || gameName.length > 80) { socialMessage('hoursMessage', 'Informe o nome do jogo.'); return; }
+  $('#startPlaySession').disabled = true;
+  try {
+    const now = new Date().toISOString();
+    const { data, error } = await supabase.from('game_sessions').insert({ user_id: currentUser.id, game_name: gameName, started_at: now, last_heartbeat: now, is_active: true }).select('id,game_name,started_at,last_heartbeat').single();
+    if (error) throw error;
+    activePlaySession = data; showActiveSession(); startHeartbeat(); socialMessage('hoursMessage', 'Contagem iniciada. Mantenha a MK Gaming aberta durante a sessão.', 'success');
+  } catch (error) {
+    socialMessage('hoursMessage', 'Não foi possível iniciar a contagem. Confira se executou o SQL atualizado no Supabase.');
+    console.error('Start play session failed:', error.message);
+  } finally { $('#startPlaySession').disabled = false; }
+}
+async function stopPlaySession() {
+  if (!activePlaySession || !currentUser) return;
+  $('#stopPlaySession').disabled = true;
+  try {
+    const now = new Date().toISOString();
+    const seconds = Math.max(0, (Date.now() - new Date(activePlaySession.started_at).getTime()) / 1000);
+    const { error } = await supabase.from('game_sessions').update({ is_active: false, ended_at: now, last_heartbeat: now, elapsed_seconds: Math.floor(seconds) }).eq('id', activePlaySession.id).eq('user_id', currentUser.id).eq('is_active', true);
+    if (error) throw error;
+    if (seconds >= 10) await addElapsedHours(activePlaySession.game_name, seconds);
+    activePlaySession = null;
+    if (sessionHeartbeatInterval) clearInterval(sessionHeartbeatInterval); sessionHeartbeatInterval = null;
+    showActiveSession(); await loadHours();
+    socialMessage('hoursMessage', `Sessão finalizada. Foram contabilizados ${Math.floor(seconds / 60)} minutos.`, 'success');
+  } catch (error) { socialMessage('hoursMessage', 'Não foi possível salvar a sessão. Tente novamente.'); console.error('Stop play session failed:', error.message); }
+  finally { $('#stopPlaySession').disabled = false; }
+}
+async function openPlayerProfile() {
+  if (!currentUser) { openAuth('register'); return; }
+  try {
+    await loadSocialData();
+    const name = socialProfile?.display_name || displayNameFor(currentUser);
+    $('#profilePageTitle').textContent = name;
+    $('#profileHandle').textContent = 'Membro da MK Gaming';
+    $('#profileBioPreview').textContent = socialProfile?.bio || 'Adicione uma descrição ao seu perfil.';
+    $('#profileEditName').value = name;
+    $('#profileEditBio').value = socialProfile?.bio || '';
+    $('#profileEditPublic').checked = socialProfile?.is_public !== false;
+    $('#profileAvatarPreview').src = socialProfile?.avatar_url || '/assets/mk-logo.png';
+    const { data: hours } = await supabase.from('game_hours').select('game_name,hours_played').eq('user_id', currentUser.id);
+    const totalHours = (hours || []).reduce((sum, item) => sum + Number(item.hours_played || 0), 0);
+    $('#profileTotalHours').textContent = `${Math.round(totalHours * 10) / 10} h`;
+    const { count } = await supabase.from('friendships').select('id', { count: 'exact', head: true }).eq('status', 'accepted').or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
+    $('#profileFriendCount').textContent = String(count || 0);
+    const games = $('#profileGamePreview'); games.replaceChildren();
+    if (!hours?.length) games.innerHTML = '<p class="muted small">Nenhum jogo registrado ainda.</p>';
+    else for (const game of hours) { const row = document.createElement('div'); row.className = 'social-item'; const label = document.createElement('strong'); label.textContent = game.game_name; const value = document.createElement('span'); value.textContent = `${Number(game.hours_played).toFixed(1)} h`; row.append(label, value); games.append(row); }
+    $('#profileReadView').classList.remove('hidden'); $('#profileEditForm').classList.add('hidden');
+    if (!profileDialog.open) profileDialog.showModal();
+  } catch (error) { console.error('Open profile failed:', error.message); }
+}
+async function saveProfilePage(event) {
+  event.preventDefault(); if (!currentUser || !supabase) return;
+  const name = $('#profileEditName').value.trim(); const bio = $('#profileEditBio').value.trim();
+  if (name.length < 2 || name.length > 32) { socialMessage('profileEditMessage', 'O nome deve ter de 2 a 32 caracteres.'); return; }
+  const button = $('#saveProfilePage'); button.disabled = true; button.textContent = 'Salvando…';
+  try {
+    let avatarUrl = socialProfile?.avatar_url || null;
+    const file = $('#profileAvatarFile').files?.[0];
+    if (file) {
+      if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024) throw new Error('A foto deve ser PNG, JPG ou WebP e ter até 3 MB.');
+      const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+      const path = `${currentUser.id}/avatar-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('profile-avatars').upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('profile-avatars').getPublicUrl(path); avatarUrl = urlData.publicUrl;
+    }
+    const { data: authData, error: authError } = await supabase.auth.updateUser({ data: { display_name: name } }); if (authError) throw authError;
+    const { data, error } = await supabase.from('profiles').upsert({ id: currentUser.id, display_name: name, bio, is_public: $('#profileEditPublic').checked, avatar_url: avatarUrl, updated_at: new Date().toISOString() }, { onConflict: 'id' }).select().single();
+    if (error) throw error;
+    socialProfile = data; currentUser = authData.user; renderAccount(authData.user);
+    $('#profileEditMessage').textContent = 'Perfil atualizado.'; $('#profileEditMessage').dataset.kind = 'success';
+    await openPlayerProfile();
+  } catch (error) { socialMessage('profileEditMessage', error.message?.includes('foto') ? error.message : 'Não foi possível salvar. Confira se executou o SQL e configurou o Storage do Supabase.'); console.error('Profile save failed:', error.message); }
+  finally { button.disabled = false; button.textContent = 'Salvar alterações'; }
+}
+
 async function loadHours() {
   const { data, error } = await supabase.from('game_hours').select('id, game_name, hours_played, updated_at').eq('user_id', currentUser.id).order('updated_at', { ascending: false });
   if (error) throw error;
   hoursList.replaceChildren();
-  if (!data.length) { hoursList.innerHTML = '<p class="muted small">Você ainda não registrou horas jogadas.</p>'; return; }
+  if (!data.length) { hoursList.innerHTML = '<p class="muted small">Você ainda não contabilizou horas. Inicie uma sessão acima.</p>'; return; }
   for (const item of data) {
     const row = document.createElement('div'); row.className = 'social-item';
     const info = document.createElement('div'); info.className = 'social-item-info';
@@ -409,19 +556,7 @@ async function loadHours() {
     row.append(info, del); hoursList.append(row);
   }
 }
-async function saveHours(event) {
-  event.preventDefault(); socialMessage('hoursMessage');
-  if (!currentUser) return;
-  const gameName = $('#gameName').value.trim(); const hours = Number($('#gameHours').value);
-  if (gameName.length < 1 || gameName.length > 80 || !Number.isFinite(hours) || hours < 0 || hours > 100000) { socialMessage('hoursMessage', 'Informe um jogo e horas entre 0 e 100.000.'); return; }
-  const button = $('#saveHours'); button.disabled = true; button.textContent = 'Salvando…';
-  try {
-    const { error } = await supabase.from('game_hours').upsert({ user_id: currentUser.id, game_name: gameName, hours_played: hours, updated_at: new Date().toISOString() }, { onConflict: 'user_id,game_name' });
-    if (error) throw error;
-    $('#hoursForm').reset(); socialMessage('hoursMessage', 'Horas registradas.', 'success'); await loadHours();
-  } catch (error) { socialMessage('hoursMessage', 'Não foi possível registrar as horas. Confira a configuração SQL do Supabase.'); console.error('Save hours failed:', error?.message || error); }
-  finally { button.disabled = false; button.textContent = 'Adicionar horas'; }
-}
+
 function makeProfileCard(profile, actionLabel, action) {
   const card = document.createElement('div'); card.className = 'social-item';
   const info = document.createElement('div'); info.className = 'social-item-info';
@@ -492,12 +627,17 @@ async function loadFriends() {
 
 $('#loginOpen').addEventListener('click', () => openAuth('login'));
 $('#signupOpen').addEventListener('click', () => openAuth('register'));
-$('#heroSignup').addEventListener('click', () => openAuth('register'));
+$('#heroSignup').addEventListener('click', () => currentUser ? openPlayerProfile() : openAuth('register'));
 $('#accountSignup').addEventListener('click', () => openAuth('register'));
 $('#logoutButton').addEventListener('click', logoutAccount);
 $('#saveDisplayName').addEventListener('click', saveDisplayName);
 $('#saveSocialProfile').addEventListener('click', saveSocialProfile);
-$('#hoursForm').addEventListener('submit', saveHours);
+$('#startPlaySession').addEventListener('click', startPlaySession);
+$('#stopPlaySession').addEventListener('click', stopPlaySession);
+$('#editProfileButton').addEventListener('click', () => { $('#profileReadView').classList.add('hidden'); $('#profileEditForm').classList.remove('hidden'); });
+$('#cancelProfileEdit').addEventListener('click', () => { $('#profileEditForm').classList.add('hidden'); $('#profileReadView').classList.remove('hidden'); });
+$('#profileEditForm').addEventListener('submit', saveProfilePage);
+$('#closeProfileDialog').addEventListener('click', () => profileDialog.close());
 $('#playerSearchForm').addEventListener('submit', searchPlayers);
 $('#showRegister').addEventListener('click', () => setView('register'));
 $('#showLogin').addEventListener('click', () => setView('login'));
