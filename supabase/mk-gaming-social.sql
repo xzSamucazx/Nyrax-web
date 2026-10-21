@@ -1,3 +1,36 @@
+-- MK Gaming: perfis, horas jogadas e amizades
+-- Execute este arquivo no Supabase Dashboard > SQL Editor > New query.
+create extension if not exists pgcrypto;
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  display_name text not null default 'Jogador MK' check (char_length(display_name) between 2 and 32),
+  bio text not null default '' check (char_length(bio) <= 280),
+  is_public boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.game_hours (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  game_name text not null check (char_length(game_name) between 1 and 80),
+  hours_played numeric(9,1) not null default 0 check (hours_played >= 0 and hours_played <= 100000),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, game_name)
+);
+
+create table if not exists public.friendships (
+  id uuid primary key default gen_random_uuid(),
+  requester_id uuid not null references auth.users(id) on delete cascade,
+  addressee_id uuid not null references auth.users(id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending','accepted')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (requester_id <> addressee_id),
+  unique (requester_id, addressee_id)
+);
 
 create table if not exists public.user_blocks (
   blocker_id uuid not null references auth.users(id) on delete cascade,
@@ -83,3 +116,38 @@ end;
 $$;
 drop trigger if exists mk_auth_user_profile on auth.users;
 create trigger mk_auth_user_profile after insert on auth.users for each row execute procedure public.mk_create_profile_for_new_user();
+
+
+-- Extensões para perfil padrão (avatar) e contador automático de sessões iniciadas no site.
+alter table public.profiles add column if not exists avatar_url text;
+create table if not exists public.game_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  game_name text not null check (char_length(game_name) between 1 and 80),
+  started_at timestamptz not null default now(),
+  last_heartbeat timestamptz not null default now(),
+  ended_at timestamptz,
+  elapsed_seconds integer not null default 0 check (elapsed_seconds >= 0),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create index if not exists game_sessions_user_active_idx on public.game_sessions(user_id, is_active);
+alter table public.game_sessions enable row level security;
+drop policy if exists "game sessions read own" on public.game_sessions;
+create policy "game sessions read own" on public.game_sessions for select to authenticated using (user_id = (select auth.uid()));
+drop policy if exists "game sessions insert own" on public.game_sessions;
+create policy "game sessions insert own" on public.game_sessions for insert to authenticated with check (user_id = (select auth.uid()));
+drop policy if exists "game sessions update own" on public.game_sessions;
+create policy "game sessions update own" on public.game_sessions for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+grant select, insert, update on public.game_sessions to authenticated;
+
+-- Public bucket for avatars. Uploads are restricted to a folder named with the authenticated user's UUID.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('profile-avatars', 'profile-avatars', true, 3145728, array['image/png','image/jpeg','image/webp'])
+on conflict (id) do update set public = true, file_size_limit = 3145728, allowed_mime_types = array['image/png','image/jpeg','image/webp'];
+drop policy if exists "Avatar images are public" on storage.objects;
+create policy "Avatar images are public" on storage.objects for select using (bucket_id = 'profile-avatars');
+drop policy if exists "Users upload own avatar" on storage.objects;
+create policy "Users upload own avatar" on storage.objects for insert to authenticated with check (bucket_id = 'profile-avatars' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists "Users update own avatar" on storage.objects;
+create policy "Users update own avatar" on storage.objects for update to authenticated using (bucket_id = 'profile-avatars' and (storage.foldername(name))[1] = (select auth.uid())::text) with check (bucket_id = 'profile-avatars' and (storage.foldername(name))[1] = (select auth.uid())::text);
