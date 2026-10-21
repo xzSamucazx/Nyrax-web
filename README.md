@@ -63,3 +63,12 @@ Este pacote inclui perfis, busca de jogadores, solicitações de amizade e regis
 Perfis são públicos na busca por padrão; cada usuário pode desativar a opção de aparecer na busca. Os e-mails não são mostrados nos perfis. Horas jogadas são informadas manualmente e não são verificadas automaticamente por plataformas de jogos. O SQL ativa RLS e limita a edição de perfil/horas ao próprio usuário e as solicitações aos participantes.
 
 **Importante:** o SQL deve ser executado uma vez no Supabase antes de testar os recursos sociais. Não compartilhe chaves `sb_secret`/`service_role`.
+
+
+## Perfil e contador de sessões
+
+A versão atual abre o perfil em uma janela própria, permite editar nome, biografia, privacidade e foto (PNG/JPG/WebP até 3 MB). O SQL atualizado cria a coluna de avatar, tabela `game_sessions`, políticas RLS e bucket `profile-avatars`.
+
+As horas são contadas automaticamente **durante sessões iniciadas manualmente no site**: o usuário informa o jogo e clica em “Iniciar contagem”, depois clica em “Finalizar sessão”. A aplicação web não consegue detectar se um jogo nativo está realmente aberto no computador/celular; para medir tempo de execução real do Steam ou de jogos locais será necessária uma integração específica com a plataforma/cliente. A página envia heartbeat a cada minuto e fecha sessões antigas usando o último heartbeat para reduzir contagens indevidas.
+
+Se você já executou uma versão anterior do SQL, execute este arquivo atualizado novamente no SQL Editor. As instruções usam `IF NOT EXISTS`/policies substituíveis para adicionar as extensões.
