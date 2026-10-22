@@ -82,3 +82,8 @@ Se você já executou uma versão anterior do SQL, execute este arquivo atualiza
 
 ## Limitação real do contador de horas
 Um site comum não consegue detectar se um jogo instalado no computador/celular foi aberto ou fechado. O contador atual mede uma sessão iniciada pelo usuário dentro da MK Gaming. A contagem automática ao iniciar um jogo externo exige integração específica com a plataforma (por exemplo, API/autenticação Steam) ou um aplicativo auxiliar instalado. A biblioteca atual não contém jogos jogáveis, portanto não é possível iniciar automaticamente uma sessão real de jogo até existir um fluxo de lançamento de jogo integrado.
+
+
+## Área social e horas automáticas
+
+A página inicial não contém o formulário social; “Amigos e comunidade” abre uma janela própria a partir do menu `|||`. O contador não possui mais botão manual: um player de jogo integrado deve chamar `window.MKGaming.startGameSession("Nome do jogo")` quando o jogo realmente começar e `window.MKGaming.endGameSession()` quando terminar. Até que exista um jogo executável integrado ao player, a contagem automática real não pode ser acionada pelo site sozinho.
