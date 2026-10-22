@@ -114,3 +114,22 @@ footer .brand-logo{width:40px;height:40px}
 .profile-cover{height:110px;border-radius:12px;background:radial-gradient(ellipse at 70% 20%,#cdb3ff88,transparent 35%),linear-gradient(120deg,#22162f,#5b3c78 50%,#17101f);border:1px solid #a98bd855;margin-bottom:0}
 .profile-heading{display:flex;align-items:center;gap:14px;margin-top:-4px}.profile-avatar{width:78px;height:78px;border-radius:50%;object-fit:cover;background:#17101f;border:3px solid #c8a9f3;box-shadow:0 0 0 5px #100d17}.profile-heading h2{margin:0 0 5px}.profile-heading p{margin:0}.profile-bio-preview{white-space:pre-wrap;color:var(--muted);line-height:1.6}.profile-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}.profile-stats>div{border:1px solid #a98bd833;border-radius:12px;padding:15px;background:#17121e;display:flex;flex-direction:column;gap:5px}.profile-stats strong{font-size:23px;color:#d6c0ff}.profile-stats span{font-size:12px;color:var(--muted)}.profile-page-card h3{font-size:16px;margin:5px 0}.timer-readout{font-size:30px;letter-spacing:2px;text-align:center;font-variant-numeric:tabular-nums;color:#dfcfff;background:#17121e;border:1px solid #a98bd844;border-radius:10px;padding:14px}.timer-actions{display:flex;gap:10px;flex-wrap:wrap}.timer-actions button{flex:1}.profile-dialog .auth-form textarea{font:inherit;color:var(--text);background:#0a090e;border:1px solid var(--line);border-radius:8px;padding:12px;resize:vertical}.profile-dialog input[type=file]{font-size:12px}.profile-dialog .close{z-index:2;background:#17121e;border-radius:8px}
 @media(max-width:560px){.profile-heading{align-items:flex-start}.profile-avatar{width:64px;height:64px}.profile-stats strong{font-size:20px}.timer-readout{font-size:25px}}
+
+
+/* Menu compacto e perfil personalizável */
+.menu-toggle{min-width:48px;min-height:44px;font-size:17px;letter-spacing:2px;font-weight:800;padding:10px 13px;border-color:#a98bd866;color:#e1d2ff}
+.menu-dialog{width:min(390px,calc(100% - 24px));max-width:390px;margin:12px 12px 12px auto;max-height:calc(100dvh - 24px);border:1px solid #a98bd877;border-radius:18px;background:#100d17;color:var(--text);padding:0}
+.menu-dialog::backdrop{background:#030207b8;backdrop-filter:blur(5px)}
+.menu-card{padding:26px 18px 18px;gap:14px}
+.menu-items{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.menu-item{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left;padding:15px 14px;background:#17121e;border-color:#a98bd833;border-radius:10px}
+.menu-item:hover{border-color:#b69ae8;background:#211a2c}
+#conta:not(.hidden){display:grid;scroll-margin-top:90px}
+.profile-cover{background-repeat:no-repeat;background-size:cover;background-position:center;position:relative;overflow:hidden}
+.profile-cover:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#100d1755,transparent 75%);pointer-events:none}
+#profileCoverFile{margin-top:4px}
+@media(max-width:600px){.menu-dialog{margin:8px 8px 8px auto;max-height:calc(100dvh - 16px)}.menu-toggle{min-width:44px;padding:10px}}
+
+/* A seção de conta fica fora da página inicial; no menu, mostrar apenas ferramentas sociais. */
+#conta:not(.hidden)>div:not(#socialPanel){display:none!important}
+#conta:not(.hidden) #socialPanel{grid-column:1/-1}

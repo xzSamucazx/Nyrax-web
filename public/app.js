@@ -70,22 +70,23 @@ function openAuth(view) {
 }
 
 function renderAccount(user) {
-  const actions = $('#headerActions');
-  actions.replaceChildren();
-
   currentUser = user || null;
-  if (user) {
-    const label = document.createElement('span');
-    label.className = 'signed-in';
-    label.textContent = displayNameFor(user);
-    const logout = document.createElement('button');
-    logout.className = 'ghost';
-    logout.type = 'button';
-    logout.textContent = 'Sair';
-    logout.addEventListener('click', logoutAccount);
-    const profileButton = document.createElement('button'); profileButton.className = 'ghost'; profileButton.type = 'button'; profileButton.textContent = 'Meu perfil'; profileButton.addEventListener('click', openPlayerProfile);
-    actions.append(profileButton, label, logout);
+  const actions = $('#headerActions');
+  if (!$('#menuOpen')) {
+    const menuButton = document.createElement('button');
+    menuButton.className = 'menu-toggle ghost'; menuButton.id = 'menuOpen'; menuButton.type = 'button';
+    menuButton.setAttribute('aria-label','Abrir menu'); menuButton.setAttribute('aria-haspopup','dialog'); menuButton.textContent = '|||';
+    actions.replaceChildren(menuButton);
+    menuButton.addEventListener('click', () => $('#menuDialog').showModal());
+  }
+  $('#menuProfile').classList.toggle('hidden', !user);
+  $('#menuCommunity').classList.toggle('hidden', !user);
+  $('#menuLogout').classList.toggle('hidden', !user);
+  $('#menuLogin').classList.toggle('hidden', Boolean(user));
+  $('#menuRegister').classList.toggle('hidden', Boolean(user));
+  $('#heroSignup').textContent = user ? 'Meu perfil' : 'Criar perfil';
 
+  if (user) {
     $('#accountTitle').textContent = 'Sua conta MK';
     $('#accountDescription').textContent = 'Seu perfil está conectado. Seu e-mail permanece privado na página.';
     profileEditor.classList.remove('hidden');
@@ -98,19 +99,6 @@ function renderAccount(user) {
     socialIntro.textContent = 'Edite seu perfil, registre suas horas jogadas e conecte-se com outros jogadores.';
     loadSocialData().catch(error => { console.error('MK social load failed:', error?.message || error); $('#socialProfileMessage').textContent = 'Não foi possível carregar os dados sociais. Confira se o SQL de configuração foi executado no Supabase.'; });
   } else {
-    const login = document.createElement('button');
-    login.className = 'ghost';
-    login.type = 'button';
-    login.textContent = 'Entrar';
-    login.addEventListener('click', () => openAuth('login'));
-
-    const signup = document.createElement('button');
-    signup.className = 'primary';
-    signup.type = 'button';
-    signup.textContent = 'Criar conta';
-    signup.addEventListener('click', () => openAuth('register'));
-    actions.append(login, signup);
-
     profileEditor.classList.add('hidden');
     $('#accountTitle').textContent = 'MK ID';
     $('#accountDescription').textContent = 'Crie sua conta pessoal para começar seu perfil.';
@@ -458,14 +446,14 @@ async function addElapsedHours(gameName, seconds) {
 }
 async function startPlaySession() {
   if (!currentUser || !supabase) { socialMessage('hoursMessage', 'Entre na sua conta para iniciar a contagem.'); return; }
-  const gameName = $('#gameName').value.trim();
-  if (gameName.length < 1 || gameName.length > 80) { socialMessage('hoursMessage', 'Informe o nome do jogo.'); return; }
+  const gameName = $('#gameName').value.trim() || 'Sessão geral';
+  if (gameName.length > 80) { socialMessage('hoursMessage', 'O nome do jogo deve ter até 80 caracteres.'); return; }
   $('#startPlaySession').disabled = true;
   try {
     const now = new Date().toISOString();
     const { data, error } = await supabase.from('game_sessions').insert({ user_id: currentUser.id, game_name: gameName, started_at: now, last_heartbeat: now, is_active: true }).select('id,game_name,started_at,last_heartbeat').single();
     if (error) throw error;
-    activePlaySession = data; showActiveSession(); startHeartbeat(); socialMessage('hoursMessage', 'Contagem iniciada. Mantenha a MK Gaming aberta durante a sessão.', 'success');
+    activePlaySession = data; showActiveSession(); startHeartbeat(); socialMessage('hoursMessage', 'Contagem iniciada. A sessão será somada ao total quando você finalizar. Para detectar automaticamente jogos externos, a MK precisará de uma integração específica.', 'success');
   } catch (error) {
     socialMessage('hoursMessage', 'Não foi possível iniciar a contagem. Confira se executou o SQL atualizado no Supabase.');
     console.error('Start play session failed:', error.message);
@@ -499,6 +487,10 @@ async function openPlayerProfile() {
     $('#profileEditBio').value = socialProfile?.bio || '';
     $('#profileEditPublic').checked = socialProfile?.is_public !== false;
     $('#profileAvatarPreview').src = socialProfile?.avatar_url || '/assets/mk-logo.png';
+    const coverPreview = $('#profileCoverPreview');
+    coverPreview.style.backgroundImage = socialProfile?.cover_url ? `linear-gradient(0deg,#100d1777,#100d1722),url("${socialProfile.cover_url}")` : '';
+    coverPreview.style.backgroundSize = 'cover'; coverPreview.style.backgroundPosition = 'center';
+    $('#profileCoverFile').value = ''; $('#profileAvatarFile').value = '';
     const { data: hours } = await supabase.from('game_hours').select('game_name,hours_played').eq('user_id', currentUser.id);
     const totalHours = (hours || []).reduce((sum, item) => sum + Number(item.hours_played || 0), 0);
     $('#profileTotalHours').textContent = `${Math.round(totalHours * 10) / 10} h`;
@@ -518,7 +510,9 @@ async function saveProfilePage(event) {
   const button = $('#saveProfilePage'); button.disabled = true; button.textContent = 'Salvando…';
   try {
     let avatarUrl = socialProfile?.avatar_url || null;
+    let coverUrl = socialProfile?.cover_url || null;
     const file = $('#profileAvatarFile').files?.[0];
+    const coverFile = $('#profileCoverFile').files?.[0];
     if (file) {
       if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024) throw new Error('A foto deve ser PNG, JPG ou WebP e ter até 3 MB.');
       const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
@@ -527,8 +521,16 @@ async function saveProfilePage(event) {
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from('profile-avatars').getPublicUrl(path); avatarUrl = urlData.publicUrl;
     }
+    if (coverFile) {
+      if (!['image/png','image/jpeg','image/webp'].includes(coverFile.type) || coverFile.size > 5 * 1024 * 1024) throw new Error('O banner deve ser PNG, JPG ou WebP e ter até 5 MB.');
+      const ext = coverFile.type === 'image/png' ? 'png' : coverFile.type === 'image/webp' ? 'webp' : 'jpg';
+      const path = `${currentUser.id}/cover-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('profile-covers').upload(path, coverFile, { upsert: true, contentType: coverFile.type });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('profile-covers').getPublicUrl(path); coverUrl = urlData.publicUrl;
+    }
     const { data: authData, error: authError } = await supabase.auth.updateUser({ data: { display_name: name } }); if (authError) throw authError;
-    const { data, error } = await supabase.from('profiles').upsert({ id: currentUser.id, display_name: name, bio, is_public: $('#profileEditPublic').checked, avatar_url: avatarUrl, updated_at: new Date().toISOString() }, { onConflict: 'id' }).select().single();
+    const { data, error } = await supabase.from('profiles').upsert({ id: currentUser.id, display_name: name, bio, is_public: $('#profileEditPublic').checked, avatar_url: avatarUrl, cover_url: coverUrl, updated_at: new Date().toISOString() }, { onConflict: 'id' }).select().single();
     if (error) throw error;
     socialProfile = data; currentUser = authData.user; renderAccount(authData.user);
     $('#profileEditMessage').textContent = 'Perfil atualizado.'; $('#profileEditMessage').dataset.kind = 'success';
@@ -625,9 +627,28 @@ async function loadFriends() {
   }
 }
 
-$('#loginOpen').addEventListener('click', () => openAuth('login'));
-$('#signupOpen').addEventListener('click', () => openAuth('register'));
+$('#menuOpen').addEventListener('click', () => $('#menuDialog').showModal());
+$('#closeMenuDialog').addEventListener('click', () => $('#menuDialog').close());
+$('#menuProfile').addEventListener('click', async () => { $('#menuDialog').close(); await openPlayerProfile(); });
+$('#menuCommunity').addEventListener('click', () => {
+  $('#menuDialog').close();
+  const section = $('#conta'); section.classList.remove('hidden'); section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+$('#menuLogin').addEventListener('click', () => { $('#menuDialog').close(); openAuth('login'); });
+$('#menuRegister').addEventListener('click', () => { $('#menuDialog').close(); openAuth('register'); });
+$('#menuLogout').addEventListener('click', async () => { $('#menuDialog').close(); await logoutAccount(); });
 $('#heroSignup').addEventListener('click', () => currentUser ? openPlayerProfile() : openAuth('register'));
+$('#profileAvatarFile').addEventListener('change', () => {
+  const file = $('#profileAvatarFile').files?.[0];
+  if (file && ['image/png','image/jpeg','image/webp'].includes(file.type) && file.size <= 3*1024*1024) $('#profileAvatarPreview').src = URL.createObjectURL(file);
+});
+$('#profileCoverFile').addEventListener('change', () => {
+  const file = $('#profileCoverFile').files?.[0];
+  if (file && ['image/png','image/jpeg','image/webp'].includes(file.type) && file.size <= 5*1024*1024) {
+    const url = URL.createObjectURL(file); $('#profileCoverPreview').style.backgroundImage = `linear-gradient(0deg,#100d1777,#100d1722),url("${url}")`;
+    $('#profileCoverPreview').style.backgroundSize = 'cover'; $('#profileCoverPreview').style.backgroundPosition = 'center';
+  }
+});
 $('#accountSignup').addEventListener('click', () => openAuth('register'));
 $('#logoutButton').addEventListener('click', logoutAccount);
 $('#saveDisplayName').addEventListener('click', saveDisplayName);
@@ -646,5 +667,6 @@ $('#closeDialog').addEventListener('click', () => dialog.close());
 loginForm.addEventListener('submit', submitLogin);
 registerForm.addEventListener('submit', submitRegister);
 dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+$('#menuDialog').addEventListener('click', event => { if (event.target === $('#menuDialog')) $('#menuDialog').close(); });
 $('#year').textContent = new Date().getFullYear();
 loadAccount();
