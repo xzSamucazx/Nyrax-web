@@ -133,3 +133,18 @@ footer .brand-logo{width:40px;height:40px}
 /* A seção de conta fica fora da página inicial; no menu, mostrar apenas ferramentas sociais. */
 #conta:not(.hidden)>div:not(#socialPanel){display:none!important}
 #conta:not(.hidden) #socialPanel{grid-column:1/-1}
+
+/* Comunidade abre em uma área própria, sem ocupar a página inicial. */
+.community-dialog{width:min(760px,calc(100% - 24px));max-width:760px;max-height:92vh;overflow:auto;padding:0;border:1px solid #a98bd877;border-radius:18px;background:#100d17;color:var(--text)}
+.community-dialog::backdrop{background:#030207d9;backdrop-filter:blur(7px)}
+.community-page-card{position:relative;padding:clamp(20px,4vw,34px)}
+.community-page-card>h2{margin:8px 40px 20px 0;font-size:clamp(24px,4vw,32px)}
+.community-page-card .social-panel{padding:0;border:0;background:transparent}
+.community-page-card .social-panel>.eyebrow,.community-page-card .social-panel>h3{display:none}
+@media(max-width:600px){.community-dialog{max-height:calc(100dvh - 16px);margin:auto}.community-page-card{padding:20px 16px}}
+
+body.community-route main>section,body.community-route footer{display:none}
+body.community-route .community-dialog{position:static;inset:auto;margin:24px auto;width:min(900px,calc(100% - 28px));max-width:900px;max-height:none;overflow:visible}
+body.community-route .community-dialog::backdrop{display:none}
+body.community-route .community-page-card{padding:clamp(22px,4vw,40px)}
+body.community-route .community-page-card>.close{display:none}
