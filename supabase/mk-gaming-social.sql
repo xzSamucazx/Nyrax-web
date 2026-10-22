@@ -151,3 +151,21 @@ drop policy if exists "Users upload own avatar" on storage.objects;
 create policy "Users upload own avatar" on storage.objects for insert to authenticated with check (bucket_id = 'profile-avatars' and (storage.foldername(name))[1] = (select auth.uid())::text);
 drop policy if exists "Users update own avatar" on storage.objects;
 create policy "Users update own avatar" on storage.objects for update to authenticated using (bucket_id = 'profile-avatars' and (storage.foldername(name))[1] = (select auth.uid())::text) with check (bucket_id = 'profile-avatars' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+
+-- MK Gaming: banners de perfil (públicos apenas quando o perfil é público; arquivos de capa não contêm dados de autenticação).
+alter table public.profiles add column if not exists cover_url text;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('profile-covers', 'profile-covers', true, 5242880, array['image/png','image/jpeg','image/webp'])
+on conflict (id) do update set public = true, file_size_limit = 5242880, allowed_mime_types = array['image/png','image/jpeg','image/webp'];
+
+drop policy if exists "Profile covers are public" on storage.objects;
+create policy "Profile covers are public" on storage.objects for select using (bucket_id = 'profile-covers');
+drop policy if exists "Users upload own cover" on storage.objects;
+create policy "Users upload own cover" on storage.objects for insert to authenticated
+with check (bucket_id = 'profile-covers' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists "Users update own cover" on storage.objects;
+create policy "Users update own cover" on storage.objects for update to authenticated
+using (bucket_id = 'profile-covers' and (storage.foldername(name))[1] = (select auth.uid())::text)
+with check (bucket_id = 'profile-covers' and (storage.foldername(name))[1] = (select auth.uid())::text);
