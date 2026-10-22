@@ -72,3 +72,13 @@ A versão atual abre o perfil em uma janela própria, permite editar nome, biogr
 As horas são contadas automaticamente **durante sessões iniciadas manualmente no site**: o usuário informa o jogo e clica em “Iniciar contagem”, depois clica em “Finalizar sessão”. A aplicação web não consegue detectar se um jogo nativo está realmente aberto no computador/celular; para medir tempo de execução real do Steam ou de jogos locais será necessária uma integração específica com a plataforma/cliente. A página envia heartbeat a cada minuto e fecha sessões antigas usando o último heartbeat para reduzir contagens indevidas.
 
 Se você já executou uma versão anterior do SQL, execute este arquivo atualizado novamente no SQL Editor. As instruções usam `IF NOT EXISTS`/policies substituíveis para adicionar as extensões.
+
+
+## Atualização de interface (menu e perfil)
+- O botão `|||` abre o menu principal; após login, `Meu perfil` abre o cartão do jogador e `Amigos e comunidade` abre a área social.
+- A seção "Sua conta" não aparece na página inicial; as ferramentas sociais são acessadas pelo menu.
+- O perfil aceita upload de avatar e banner. Execute novamente `supabase/mk-gaming-social.sql` no SQL Editor para adicionar `cover_url`, bucket `profile-covers` e políticas de upload. O script usa `IF NOT EXISTS`/políticas recriadas para permitir atualização.
+- O campo de jogo no contador agora é opcional; sem nome específico, as horas são agrupadas em `Sessão geral`.
+
+## Limitação real do contador de horas
+Um site comum não consegue detectar se um jogo instalado no computador/celular foi aberto ou fechado. O contador atual mede uma sessão iniciada pelo usuário dentro da MK Gaming. A contagem automática ao iniciar um jogo externo exige integração específica com a plataforma (por exemplo, API/autenticação Steam) ou um aplicativo auxiliar instalado. A biblioteca atual não contém jogos jogáveis, portanto não é possível iniciar automaticamente uma sessão real de jogo até existir um fluxo de lançamento de jogo integrado.
